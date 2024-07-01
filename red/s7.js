@@ -376,10 +376,20 @@ module.exports = function (RED) {
         function sendMsg(data, key, status) {
             if (key === undefined) key = '';
             if (data instanceof Date) data = data.getTime();
-            var msg = {
-                payload: data,
-                topic: key
-            };
+            var msg = [
+                {
+                    payload: data,
+                    topic: key
+                },
+                {
+                    payload: {
+                        name: node.endpoint.name,
+                        ip: node.endpoint.endpoint._connOptsTcp.host,
+                        status: node.endpoint.getStatus(),
+                    },
+                    topic: ''
+                },
+            ];
             statusVal = status !== undefined ? status : data;
             node.send(msg);
             node.status(generateStatus(node.endpoint.getStatus(), statusVal));
@@ -405,6 +415,24 @@ module.exports = function (RED) {
 
         function onEndpointStatus(s) {
             node.status(generateStatus(s.status, statusVal));
+
+            // 只触发 ['online', 'offline'] 的事件
+            if (!['online', 'offline'].includes(node.endpoint.getStatus())) return;
+            var msg = [
+                {
+                    payload: {},
+                    topic: ''
+                },
+                {
+                    payload: {
+                        name: node.endpoint.name,
+                        ip: node.endpoint.endpoint._connOptsTcp.host,
+                        status: node.endpoint.getStatus(),
+                    },
+                    topic: ''
+                },
+            ];
+            node.send(msg);
         }
 
         node.status(generateStatus(node.endpoint.getStatus(), statusVal));
