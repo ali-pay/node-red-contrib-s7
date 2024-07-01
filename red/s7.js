@@ -469,7 +469,19 @@ module.exports = function (RED) {
             var writeObj = {
                 name: config.variable || msg.variable,
                 val: msg.payload,
-                done: done
+                done: (error) => {
+                    // https://nodered.org/docs/creating-nodes/node-js#handling-errors
+                    if (error) {
+                        node.error(error);
+                    }
+                    node.send({
+                        payload: {
+                            error: error,
+                            variable: config.variable || msg.variable,
+                            payload: msg.payload,
+                        }
+                    });
+                }
             };
 
             // Test for the case we're writing multiple vars
