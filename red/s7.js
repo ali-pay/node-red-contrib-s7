@@ -349,6 +349,7 @@ module.exports = function (RED) {
 
         itemGroup = new nodes7.S7ItemGroup(node.endpoint);
         itemGroup.setTranslationCB(k => node._vars[k]);
+        node.itemGroup = itemGroup;
 
         let varKeys = Object.keys(node._vars)
         if (!varKeys || !varKeys.length) {
@@ -498,17 +499,64 @@ module.exports = function (RED) {
                 name: config.variable || msg.variable,
                 val: msg.payload,
                 done: (error) => {
+
+                    const variable = config.variable || msg.variable
+                    const payload = msg.payload
+
+                    const variables = Array.isArray(variable) ? variable : [variable]
+                    const payloads = Array.isArray(payload) ? payload : [payload]
+
+                    const values = {}
+                    variables.forEach((key, index) => {
+                        values[key] = payloads[index]
+                    })
+
+                    // 调用 s7-out 后的返回消息
+                    const message = {
+                        payload: {
+                            error: error,       // 错误
+                            variable: variable, // 写入的键
+                            payload: payload,   // 写入的值
+                            values: values,     // 写入的键值对
+                            newValues: {},      // plc的最新键值对
+                            bingo: false,       // plc的最新值跟写入值是否一致
+                            wrongValues: {},    // 跟写入值不一致的键值对
+                        }
+                    }
+
+                    // 处理错误 done(r) 不生效；需要使用 node.error(e)
                     // https://nodered.org/docs/creating-nodes/node-js#handling-errors
                     if (error) {
-                        node.error(error);
+                        node.error(error)
+                        node.send(message)
+                        return
                     }
-                    node.send({
-                        payload: {
-                            error: error,
-                            variable: config.variable || msg.variable,
-                            payload: msg.payload,
+
+                    // 读取最新的值
+                    node.endpoint.itemGroup.readAllItems()
+                    .then(newValues => {
+                        // 过滤变量
+                        for (const key in newValues) {
+                            if (variables.includes(key)) {
+                                message.payload.newValues[key] = newValues[key]
+
+                                // 重要！需要跟PLC约定：读取完数据1秒后再清空，避免本程序做二次读取校验时读取不到当时写入的数据
+                                if (newValues[key] !== values[key]) message.payload.wrongValues[key] = newValues[key]
+                            }
                         }
-                    });
+
+                        // 数据是否完全写入成功
+                        const v1 = Object.keys(message.payload.values).length
+                        const v2 = Object.keys(message.payload.newValues).length
+                        const v3 = Object.keys(message.payload.wrongValues).length
+                        message.payload.bingo = v1 === v2 && v3 === 0
+                    })
+                    .catch(e => {
+                        node.error(e)
+                    })
+                    .finally(() => {
+                        node.send(message)
+                    })
                 }
             };
 
