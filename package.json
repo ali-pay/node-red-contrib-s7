@@ -8,10 +8,10 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/st-one-io/node-red-contrib-s7.git"
+        "url": "https://github.com/ali-pay/node-red-contrib-s7.git"
     },
     "bugs": {
-        "url": "https://github.com/st-one-io/node-red-contrib-s7/issues"
+        "url": "https://github.com/ali-pay/node-red-contrib-s7/issues"
     },
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
