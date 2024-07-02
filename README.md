@@ -3,6 +3,33 @@ A Node-RED node to interact with Siemens S7 PLCs.
 
 This node was created as part of the [ST-One](https://st-one.io) project.
 
+## 更新日志
+
+### v3.2.0
+
+- `s7-in` 节点增加 `设备状态` 的输出
+
+  ```json
+  {
+        "name": "7#-8#",       // plc 名称
+        "ip": "172.19.21.70",  // plc ip
+        "status": "online"     // plc 状态 online / offline
+  }
+  ```
+
+- `s7-out` 节点增加 `写入结果` 的输出
+
+  ```json
+  {
+        "error": "Error: Not connected", // 错误
+        "variable": ["a", "b"],          // 写入的键 msg.variable
+        "payload": [1, 2],               // 写入的值 msg.payload
+        "values": { "a":1, "b":2 },      // 写入的键值对
+        "newValues": {},                 // plc的最新键值对
+        "bingo": false,                  // plc的最新值跟写入值是否一致
+        "wrongValues": {}                // 跟写入值不一致的键值对
+  }
+  ```
 
 ## Install
 
