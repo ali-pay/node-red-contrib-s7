@@ -5,6 +5,17 @@ This node was created as part of the [ST-One](https://st-one.io) project.
 
 ## 更新日志
 
+### v3.3.1
+
+- `s7-out` 节点重构 `失败重写` 的逻辑
+
+```bash
+改前：写入数据->读取最新值->判断是否成功->等待间隔时间->重试写入数据
+改后：写入数据->等待间隔时间->读取最新值->判断是否成功->重试写入数据
+```
+
+- `s7-out` 节点重构 `async-await` 的语法
+
 ### v3.3.0
 
 - `s7-endpoint` 节点增加 `失败重写` 的配置

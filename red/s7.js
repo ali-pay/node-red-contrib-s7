@@ -541,55 +541,50 @@ module.exports = function (RED) {
 
                     // 已重写次数
                     let rewriteCount = 0;
-                    // 判断是否需要重写
-                    function rewrite() {
-                        // 读取最新的值
-                        node.endpoint.itemGroup.readAllItems()
-                            .then(newValues => {
-
-                                // plc的最新所有的键值对
-                                for (const key in newValues) {
-
-                                    // 只匹配此次写入的变量
-                                    if (variables.includes(key)) {
-                                        // plc的最新键值对
-                                        msg.payload.newValues[key] = newValues[key]
-
-                                        // 跟写入值不一致的键值对
-                                        if (newValues[key] !== values[key]) msg.payload.wrongValues[key] = newValues[key]
-                                    }
+                    // 读取最新的值判断是否需要重写数据
+                    async function rewrite() {
+                        // 延时读取最新的值
+                        if (node.endpoint.rewritetimes && node.endpoint.rewriteinterval) await new Promise(resolve => setTimeout(resolve, node.endpoint.rewriteinterval))
+                        try {
+                            // 读取最新的值
+                            const newValues = await node.endpoint.itemGroup.readAllItems()
+                            for (const key in newValues) {
+                                // 只匹配此次写入的变量
+                                if (variables.includes(key)) {
+                                    // plc的最新键值对
+                                    msg.payload.newValues[key] = newValues[key]
+                                    // 跟写入值不一致的键值对
+                                    if (newValues[key] !== values[key]) msg.payload.wrongValues[key] = newValues[key]
                                 }
+                            }
+                            // 判断数据是否完全写入成功
+                            const v1 = Object.keys(msg.payload.values).length
+                            const v2 = Object.keys(msg.payload.newValues).length
+                            const v3 = Object.keys(msg.payload.wrongValues).length
+                            msg.payload.bingo = v1 === v2 && v3 === 0
+                        } catch (e) {
+                            // node.error(e)
+                        }
+                        // 判断是否需要重写数据
+                        if (!msg.payload.bingo && node.endpoint.rewritetimes > rewriteCount) {
+                            // 递增已重写次数
+                            rewriteCount++
+                            try {
+                                await node.endpoint.itemGroup.writeItems(writeObj.name, writeObj.val)
+                            }
+                            catch (e) {
+                                // node.error(e)
+                            }
+                            // 读取最新的值判断是否需要重写数据
+                            rewrite()
+                            return
+                        }
 
-                                // 判断数据是否完全写入成功
-                                const v1 = Object.keys(msg.payload.values).length
-                                const v2 = Object.keys(msg.payload.newValues).length
-                                const v3 = Object.keys(msg.payload.wrongValues).length
-                                msg.payload.bingo = v1 === v2 && v3 === 0
-                            })
-                            .catch(e => node.error(e))
-                            .finally(() => {
-                                // 判断是否需要重写数据
-                                if (!msg.payload.bingo && node.endpoint.rewritetimes > rewriteCount) {
-
-                                    // 递增已重写次数
-                                    rewriteCount++
-
-                                    // 延时执行重写
-                                    new Promise(resolve => setTimeout(resolve, node.endpoint.rewriteinterval))
-                                        .then(() => {
-                                            node.endpoint.itemGroup.writeItems(writeObj.name, writeObj.val)
-                                                .catch(e => node.error(e))
-                                                .finally(() => rewrite()) // 判断是否需要重写
-                                        })
-                                    return
-                                }
-
-                                // 输出消息
-                                node.send(msg)
-                            })
+                        // 输出消息
+                        node.send(msg)
                     }
 
-                    // 判断是否需要重写
+                    // 读取最新的值判断是否需要重写数据
                     rewrite()
                 }
             };
