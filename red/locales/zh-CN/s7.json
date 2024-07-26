@@ -4,26 +4,26 @@
             "label": {
                 "name": "s7 in",
                 "endpoint": "PLC",
-                "mode": "Mode",
-                "variable": "Variable",
-                "diff": "Emit only when value changes (diff)",
-                "variable-select": "Select a variable",
-                "variable-novar": "No variables"
+                "mode": "输出模式",
+                "variable": "变量",
+                "diff": "当数据有变化时才输出消息",
+                "variable-select": "请选择一个变量",
+                "variable-novar": "没有变量，请先定义变量"
             },
             "mode": {
-                "single": "Single variable",
-                "all-split": "All variables, one per message",
-                "all": "All variables"
+                "single": "单个变量",
+                "all-split": "所有变量，每个变量皆输出为一条消息",
+                "all": "所有变量"
             }
         },
         "out": {
             "label": {
                 "name": "s7 out",
                 "endpoint": "PLC",
-                "variable": "Variable",
-                "variable-select": "Select a variable"
+                "variable": "变量",
+                "variable-select": "请选择一个变量"
             },
-            "disclaimer": "Caution when writing data to production PLCs!"
+            "disclaimer": "生产环境中，请谨慎使用！"
         },
         "control": {
             "label": {
@@ -46,10 +46,10 @@
                 "slot": "Slot",
                 "tsap-local": "Local TSAP",
                 "tsap-remote": "Remote TSAP",
-                "cycletime": "Cycle time",
-                "timeout": "Timeout",
-                "rewritetimes": "Rewrite Times",
-                "rewriteinterval": "Rewrite Interval",
+                "cycletime": "循环读取周期",
+                "timeout": "连接超时时间",
+                "rewritetimes": "失败重写次数",
+                "rewriteinterval": "失败重写间隔",
                 "verbose": "Debug",
                 "adapter": "Adapter",
                 "adapterplaceholder": "Please install 'node-red-contrib-mpi-s7' for MPI/PPI/DP support",
@@ -57,18 +57,18 @@
                 "search": "Search",
                 "flash-led": "Flash LED",
                 "tabs": {
-                    "connection": "Connection",
-                    "variables": "Variables"
+                    "connection": "连接设置",
+                    "variables": "变量设置"
                 },
                 "variables": {
-                    "list": "Variable list",
-                    "add": "Add",
-                    "clean": "Remove all",
-                    "del": "Remove",
-                    "name": "Name",
-                    "addr": "Address",
-                    "export": "Export",
-                    "import": "Import"
+                    "list": "变量列表",
+                    "add": "添加",
+                    "clean": "删除所有",
+                    "del": "删除",
+                    "name": "变量名",
+                    "addr": "地址",
+                    "export": "导出",
+                    "import": "导入"
                 }
             },
             "placeholder": {
@@ -83,15 +83,15 @@
                 "tsap": "TSAP"
             },
             "status": {
-                "online": "online",
-                "badvalues": "failure",
-                "offline": "offline",
-                "unknown": "unknown",
-                "connecting": "connecting"
+                "online": "在线",
+                "badvalues": "失败",
+                "offline": "离线",
+                "unknown": "未知",
+                "connecting": "连接中"
             }
         },
         "label": {
-            "name": "Name",
+            "name": "名称",
             "select": "Select a device"
         },
         "error": {

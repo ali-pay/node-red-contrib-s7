@@ -349,7 +349,6 @@ module.exports = function (RED) {
 
         itemGroup = new nodes7.S7ItemGroup(node.endpoint);
         itemGroup.setTranslationCB(k => node._vars[k]);
-        node.itemGroup = itemGroup;
 
         let varKeys = Object.keys(node._vars)
         if (!varKeys || !varKeys.length) {
@@ -359,6 +358,10 @@ module.exports = function (RED) {
             itemGroup.addItems(varKeys);
         }
 
+        // 将字段加入s7 endpoint节点对象中
+        node.itemGroup = itemGroup;
+        node.rewritetimes = parseInt(config.rewritetimes);
+        node.rewriteinterval = parseInt(config.rewriteinterval);
     }
     RED.nodes.registerType("s7 endpoint", S7Endpoint);
 
@@ -377,20 +380,16 @@ module.exports = function (RED) {
         function sendMsg(data, key, status) {
             if (key === undefined) key = '';
             if (data instanceof Date) data = data.getTime();
-            var msg = [
-                {
-                    payload: data,
-                    topic: key
-                },
-                {
-                    payload: {
-                        name: node.endpoint.name,
-                        ip: node.endpoint.endpoint._connOptsTcp.host,
-                        status: node.endpoint.getStatus(),
-                    },
-                    topic: ''
-                },
-            ];
+            var msg = {
+                topic: key,
+                payload: data,
+                _s7: {
+                    plc: node.endpoint.name,
+                    ip: node.endpoint.endpoint._connOptsTcp.host,
+                    status: node.endpoint.getStatus() === 'online' ? '在线' : '离线',
+                    time: new Date(),
+                }
+            };
             statusVal = status !== undefined ? status : data;
             node.send(msg);
             node.status(generateStatus(node.endpoint.getStatus(), statusVal));
@@ -418,21 +417,17 @@ module.exports = function (RED) {
             node.status(generateStatus(s.status, statusVal));
 
             // 只触发 ['online', 'offline'] 的事件
-            if (!['online', 'offline'].includes(node.endpoint.getStatus())) return;
-            var msg = [
-                {
-                    payload: {},
-                    topic: ''
-                },
-                {
-                    payload: {
-                        name: node.endpoint.name,
-                        ip: node.endpoint.endpoint._connOptsTcp.host,
-                        status: node.endpoint.getStatus(),
-                    },
-                    topic: ''
-                },
-            ];
+            // if (!['online', 'offline'].includes(node.endpoint.getStatus())) return;
+            var msg = {
+                topic: '',
+                payload: {},
+                _s7: {
+                    plc: node.endpoint.name,
+                    ip: node.endpoint.endpoint._connOptsTcp.host,
+                    status: node.endpoint.getStatus() === 'online' ? '在线' : '离线',
+                    time: new Date(),
+                }
+            };
             node.send(msg);
         }
 
@@ -500,63 +495,102 @@ module.exports = function (RED) {
                 val: msg.payload,
                 done: (error) => {
 
-                    const variable = config.variable || msg.variable
-                    const payload = msg.payload
+                    /**
+                     * 第一次写入数据后，会进入本函数
+                     */
 
+                    // 写入的键
+                    const variable = config.variable || msg.variable
+                    // 写入的值
+                    const payload = msg.payload
+                    // 写入的键（数组）
                     const variables = Array.isArray(variable) ? variable : [variable]
+                    // 写入的值（数组）
                     const payloads = Array.isArray(payload) ? payload : [payload]
 
+                    // 写入的键值对
                     const values = {}
                     variables.forEach((key, index) => {
                         values[key] = payloads[index]
                     })
 
-                    // 调用 s7-out 后的返回消息
-                    const message = {
-                        payload: {
-                            error: error,       // 错误
-                            variable: variable, // 写入的键
-                            payload: payload,   // 写入的值
-                            values: values,     // 写入的键值对
-                            newValues: {},      // plc的最新键值对
-                            bingo: false,       // plc的最新值跟写入值是否一致
-                            wrongValues: {},    // 跟写入值不一致的键值对
-                        }
+                    // 调用 s7-out 后的输出消息
+                    msg._s7 = {
+                        plc: node.endpoint.name,
+                        ip: node.endpoint.endpoint._connOptsTcp.host,
+                        status: node.endpoint.getStatus() === 'online' ? '在线' : '离线',
+                        time: new Date(),
+                    }
+                    msg.payload = {
+                        variable: variable, // 写入的键
+                        payload: payload,   // 写入的值
+                        values: values,     // 写入的键值对
+                        newValues: {},      // plc的最新键值对
+                        wrongValues: {},    // 跟写入值不一致的键值对
+                        bingo: false,       // plc的最新值跟写入值是否一致
+                        error: error,       // 错误
                     }
 
-                    // 处理错误 done(r) 不生效；需要使用 node.error(e)
+                    // 处理错误 done(e) 不生效；需要使用 node.error(e)
                     // https://nodered.org/docs/creating-nodes/node-js#handling-errors
                     if (error) {
                         node.error(error)
-                        node.send(message)
+                        node.send(msg)
                         return
                     }
 
-                    // 读取最新的值
-                    node.endpoint.itemGroup.readAllItems()
-                    .then(newValues => {
-                        // 过滤变量
-                        for (const key in newValues) {
-                            if (variables.includes(key)) {
-                                message.payload.newValues[key] = newValues[key]
+                    // 已重写次数
+                    let rewriteCount = 0;
+                    // 判断是否需要重写
+                    function rewrite() {
+                        // 读取最新的值
+                        node.endpoint.itemGroup.readAllItems()
+                            .then(newValues => {
 
-                                // 重要！需要跟PLC约定：读取完数据1秒后再清空，避免本程序做二次读取校验时读取不到当时写入的数据
-                                if (newValues[key] !== values[key]) message.payload.wrongValues[key] = newValues[key]
-                            }
-                        }
+                                // plc的最新所有的键值对
+                                for (const key in newValues) {
 
-                        // 数据是否完全写入成功
-                        const v1 = Object.keys(message.payload.values).length
-                        const v2 = Object.keys(message.payload.newValues).length
-                        const v3 = Object.keys(message.payload.wrongValues).length
-                        message.payload.bingo = v1 === v2 && v3 === 0
-                    })
-                    .catch(e => {
-                        node.error(e)
-                    })
-                    .finally(() => {
-                        node.send(message)
-                    })
+                                    // 只匹配此次写入的变量
+                                    if (variables.includes(key)) {
+                                        // plc的最新键值对
+                                        msg.payload.newValues[key] = newValues[key]
+
+                                        // 跟写入值不一致的键值对
+                                        if (newValues[key] !== values[key]) msg.payload.wrongValues[key] = newValues[key]
+                                    }
+                                }
+
+                                // 判断数据是否完全写入成功
+                                const v1 = Object.keys(msg.payload.values).length
+                                const v2 = Object.keys(msg.payload.newValues).length
+                                const v3 = Object.keys(msg.payload.wrongValues).length
+                                msg.payload.bingo = v1 === v2 && v3 === 0
+                            })
+                            .catch(e => node.error(e))
+                            .finally(() => {
+                                // 判断是否需要重写数据
+                                if (!msg.payload.bingo && node.endpoint.rewritetimes > rewriteCount) {
+
+                                    // 递增已重写次数
+                                    rewriteCount++
+
+                                    // 延时执行重写
+                                    new Promise(resolve => setTimeout(resolve, node.endpoint.rewriteinterval))
+                                        .then(() => {
+                                            node.endpoint.itemGroup.writeItems(writeObj.name, writeObj.val)
+                                                .catch(e => node.error(e))
+                                                .finally(() => rewrite()) // 判断是否需要重写
+                                        })
+                                    return
+                                }
+
+                                // 输出消息
+                                node.send(msg)
+                            })
+                    }
+
+                    // 判断是否需要重写
+                    rewrite()
                 }
             };
 

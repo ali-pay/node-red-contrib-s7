@@ -67,6 +67,14 @@
 				<input type="text" id="node-config-input-timeout" data-i18n="[placeholder]s7.endpoint.label.timeout" style="width: 60px;"> <span>ms</span>
 			</div>
 			<div class="form-row">
+				<label for="node-config-input-rewritetimes"><span data-i18n="s7.endpoint.label.rewritetimes"></span></label>
+				<input type="text" id="node-config-input-rewritetimes" style="width: 60px;">
+			</div>
+			<div class="form-row">
+				<label for="node-config-input-rewriteinterval"><span data-i18n="s7.endpoint.label.rewriteinterval"></span></label>
+				<input type="text" id="node-config-input-rewriteinterval" style="width: 60px;"> <span>ms</span>
+			</div>
+			<div class="form-row">
 				<label for="node-config-input-name"><i class="fa fa-tag"></i> <span data-i18n="s7.label.name"></span></label>
 				<input type="text" id="node-config-input-name" data-i18n="[placeholder]s7.label.name">
 			</div>
@@ -559,7 +567,7 @@
 				validate: RED.validators.number()
 			},
 			slot: {
-				value: "2",
+				value: "1",
 				validate: RED.validators.number()
 			},
 			localtsaphi: {
@@ -597,6 +605,12 @@
 			},
 			name: {
 				value: ""
+			},
+			rewritetimes: {
+				value: 0
+			},
+			rewriteinterval: {
+				value: 500
 			},
 			vartable: {
 				value: [{
@@ -780,6 +794,14 @@
 				});
 			});
 
+			$("#node-config-input-rewritetimes").spinner({
+				min: 0
+			});
+
+			$("#node-config-input-rewriteinterval").spinner({
+				min: 0
+			});
+
 			$("#node-config-input-cycletime").spinner({
 				min: 0
 			});
@@ -877,8 +899,18 @@
 				connTypeList.val(self.connmode);
 			}
 
+			if (self.rewritetimes === undefined) {
+				self.rewritetimes = 0;
+				$("#node-config-input-rewritetimes").val(self.rewritetimes);
+			}
+
+			if (self.rewriteinterval === undefined) {
+				self.rewriteinterval = 500;
+				$("#node-config-input-rewriteinterval").val(self.rewriteinterval);
+			}
+
 			if (self.timeout === undefined) {
-				self.timeout = 1500;
+				self.timeout = 2000;
 				$("#node-config-input-timeout").val(self.timeout);
 			}
 
@@ -1127,7 +1159,7 @@
 		},
 		color: "#3FADB5",
 		inputs: 0,
-		outputs: 2,
+		outputs: 1,
 		icon: "serial.png",
 		label: function () {
 			var self = this;

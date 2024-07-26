@@ -48,6 +48,8 @@
                 "tsap-remote": "Remote TSAP",
                 "cycletime": "Zykluszeit",
                 "timeout": "Timeout",
+                "rewritetimes": "Rewrite Times",
+                "rewriteinterval": "Rewrite Interval",
                 "verbose": "Debug",
                 "adapter": "Adapter",
                 "adapterplaceholder": "Bitte 'node-red-contrib-mpi-s7' installieren",
