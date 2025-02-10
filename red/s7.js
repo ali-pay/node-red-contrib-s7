@@ -529,6 +529,7 @@ module.exports = function (RED) {
                         wrongValues: {},    // 跟写入值不一致的键值对
                         bingo: false,       // plc的最新值跟写入值是否一致
                         error: error,       // 错误
+                        rewriteCount: 0,    // 已重写次数
                     }
 
                     // 处理错误 done(e) 不生效；需要使用 node.error(e)
@@ -539,13 +540,16 @@ module.exports = function (RED) {
                         return
                     }
 
-                    // 已重写次数
-                    let rewriteCount = 0;
                     // 读取最新的值判断是否需要重写数据
                     async function rewrite() {
                         // 延时读取最新的值
                         if (node.endpoint.rewritetimes && node.endpoint.rewriteinterval) await new Promise(resolve => setTimeout(resolve, node.endpoint.rewriteinterval))
                         try {
+
+                            // 清空上一次记录的数据
+                            msg.payload.newValues = {}
+                            msg.payload.wrongValues = {}
+
                             // 读取最新的值
                             const newValues = await node.endpoint.itemGroup.readAllItems()
                             for (const key in newValues) {
@@ -566,9 +570,14 @@ module.exports = function (RED) {
                             // node.error(e)
                         }
                         // 判断是否需要重写数据
-                        if (!msg.payload.bingo && node.endpoint.rewritetimes > rewriteCount) {
+                        if (!msg.payload.bingo && node.endpoint.rewritetimes > msg.payload.rewriteCount) {
+
                             // 递增已重写次数
-                            rewriteCount++
+                            msg.payload.rewriteCount++
+
+                            // 想查看重写记录时，可以注释这句话
+                            // console.log(`[${new Date().toLocaleString()}]重写：`, msg.payload.rewriteCount, msg.payload.wrongValues, msg.payload.newValues, msg.payload.values)
+
                             try {
                                 await node.endpoint.itemGroup.writeItems(writeObj.name, writeObj.val)
                             }
@@ -576,7 +585,7 @@ module.exports = function (RED) {
                                 // node.error(e)
                             }
                             // 读取最新的值判断是否需要重写数据
-                            rewrite()
+                            await rewrite()
                             return
                         }
 

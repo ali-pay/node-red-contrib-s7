@@ -5,6 +5,12 @@ This node was created as part of the [ST-One](https://st-one.io) project.
 
 ## 更新日志
 
+### v3.4.0
+
+- `s7-out` 节点增加 `已重写次数` 的输出
+
+- `s7-out` 节点修复 `数据残留导致重写失败` 的问题
+
 ### v3.3.1
 
 - `s7-out` 节点重构 `失败重写` 的逻辑
