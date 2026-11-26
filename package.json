@@ -14,7 +14,7 @@
         "url": "https://github.com/ali-pay/node-red-contrib-s7/issues"
     },
     "scripts": {
-        "publish": "npm publish"
+        "release": "npm publish"
     },
     "publishConfig": {
         "registry": "https://registry.npmjs.org"
