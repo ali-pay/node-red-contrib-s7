@@ -5,6 +5,10 @@ This node was created as part of the [ST-One](https://st-one.io) project.
 
 ## 更新日志
 
+### v3.6.1
+
+- 更新 nodes7 版本
+
 ### v3.6.0
 
 - 同步原仓库代码
