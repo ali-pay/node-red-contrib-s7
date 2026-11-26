@@ -5,6 +5,10 @@ This node was created as part of the [ST-One](https://st-one.io) project.
 
 ## 更新日志
 
+### v3.6.0
+
+- 同步原仓库代码
+
 ### v3.5.0
 
 - `_s7` 结构增加 `datetime` 字段
