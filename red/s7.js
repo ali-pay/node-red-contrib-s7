@@ -333,6 +333,7 @@ module.exports = function (RED) {
                 itemGroup.readAllItems().then(cycleCallback).catch(e => {
                     node.error(e, {});
                     readInProgress = false;
+                    manageStatus('offline');
                 });
                 readInProgress = true;
             } else {
