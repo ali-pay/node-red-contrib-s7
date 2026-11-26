@@ -32,6 +32,35 @@ function equals(a, b) {
     return false;
 }
 
+/**
+ * Returns a date as a string value in `YYYY-MM-DD HH:mm:ss` format.
+ * @param {Date} date 
+ * @returns 
+ */
+function formatDate(date) {
+  const pad = (n, len = 2) => String(n).padStart(len, '0')
+  return (
+    date.getFullYear() +
+    '-' + pad(date.getMonth() + 1) +
+    '-' + pad(date.getDate()) +
+    ' ' + pad(date.getHours()) +
+    ':' + pad(date.getMinutes()) +
+    ':' + pad(date.getSeconds()) +
+    '.' + pad(date.getMilliseconds(), 3)
+  )
+}
+
+function get_s7(node) {
+    const time = new Date()
+    return {
+        plc: node.endpoint.name,
+        ip: node.endpoint.endpoint._connOptsTcp.host,
+        status: node.endpoint.getStatus() === 'online' ? '在线' : '离线',
+        time: time,
+        datetime: formatDate(time),
+    }
+}
+
 var MIN_CYCLE_TIME = 50;
 
 var tools = require('../src/tools.js');
@@ -383,12 +412,7 @@ module.exports = function (RED) {
             var msg = {
                 topic: key,
                 payload: data,
-                _s7: {
-                    plc: node.endpoint.name,
-                    ip: node.endpoint.endpoint._connOptsTcp.host,
-                    status: node.endpoint.getStatus() === 'online' ? '在线' : '离线',
-                    time: new Date(),
-                }
+                _s7: get_s7(node),
             };
             statusVal = status !== undefined ? status : data;
             node.send(msg);
@@ -421,12 +445,7 @@ module.exports = function (RED) {
             var msg = {
                 topic: '',
                 payload: {},
-                _s7: {
-                    plc: node.endpoint.name,
-                    ip: node.endpoint.endpoint._connOptsTcp.host,
-                    status: node.endpoint.getStatus() === 'online' ? '在线' : '离线',
-                    time: new Date(),
-                }
+                _s7: get_s7(node),
             };
             node.send(msg);
         }
@@ -515,12 +534,7 @@ module.exports = function (RED) {
                     })
 
                     // 调用 s7-out 后的输出消息
-                    msg._s7 = {
-                        plc: node.endpoint.name,
-                        ip: node.endpoint.endpoint._connOptsTcp.host,
-                        status: node.endpoint.getStatus() === 'online' ? '在线' : '离线',
-                        time: new Date(),
-                    }
+                    msg._s7 = get_s7(node),
                     msg.payload = {
                         variable: variable, // 写入的键
                         payload: payload,   // 写入的值
@@ -530,6 +544,7 @@ module.exports = function (RED) {
                         bingo: false,       // plc的最新值跟写入值是否一致
                         error: error,       // 错误
                         rewriteCount: 0,    // 已重写次数
+                        ...msg._s7,
                     }
 
                     // 处理错误 done(e) 不生效；需要使用 node.error(e)

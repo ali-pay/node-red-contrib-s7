@@ -5,6 +5,12 @@ This node was created as part of the [ST-One](https://st-one.io) project.
 
 ## 更新日志
 
+### v3.5.0
+
+- `_s7` 结构增加 `datetime` 字段
+
+- `s7-out` 结构增加 `_s7` 的相同字段
+
 ### v3.4.0
 
 - `s7-out` 节点增加 `已重写次数` 的输出
